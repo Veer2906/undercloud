@@ -10,23 +10,21 @@ A sealed on-chain market where AI labs and GPU brokers buy pre-public facts abou
 
 - Chain: Arbitrum Sepolia (chain ID 421614)
 - Contract: Solidity 0.8, one file, no owner, no upgrades; Foundry for tests and deploy; verified on Arbiscan through the Etherscan API
-- Agents: TypeScript, viem, ECIES encryption, Claude as the judge (with a deterministic fallback)
-- Dashboard: Next.js on Vercel, reads the chain directly, no wallet needed
+- Dashboard: Next.js on Vercel
 
 ## Why this vertical
 
 I've been exploring compute a lot lately, and it's becoming the most relevant market in AI.
-Looking at companies like Ornn, I realized the valuable thing isn't the GPU-hour, it's knowing about capacity and prices before everyone else.
-That fact can't be shown before it's paid for, which makes it the perfect thing to put on-chain with bonds and a judge.
+Looking at companies like Ornn, thought I would make a marketplace selling compute information.
 
 ## Trust assumptions
 
-- One committed judge: its address, model id and rubric hash are fixed in the contract; auditable, not trustless.
+- One committed judge: its address, model id and rubric hash are fixed in the contract.
 - Nobody verifies the GPUs exist; the market prices the credibility of a claim, not the capacity.
 
 ## Biggest design decisions
 
-- Built on Arbitrum Sepolia: I read the Arbitrum whitepaper and wanted to learn the rollup by shipping on it.
+- Built on Arbitrum Sepolia: I read the Arbitrum whitepaper and wanted to learn how it works by shipping on it (personally how I learn new tech).
 - Disputes reveal the buyer's decryption key to the judge only, never the dossier to the public chain.
 
 ## One important limitation
@@ -43,6 +41,6 @@ A convincing fabrication that matches its label and isn't on any price board yet
 6. The seller's bond stays locked until the date the fact should have gone public.
 
 
-First thing I've ever put on a chain. Getting testnet ETH took longer than deploying the contract, which is how I learned what token maxing really means.
+First thing I've ever put on a chain, took a bit but was fun + learnt what token maxxxing really meant.
 
 License: Apache-2.0
