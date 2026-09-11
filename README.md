@@ -43,14 +43,6 @@ A convincing fabrication that matches its label and isn't on any price board yet
 5. Judge rules: buyer wins gets refund plus damages and the seller's bond burns; seller wins keeps the dispute bond.
 6. The seller's bond stays locked until the date the fact should have gone public.
 
-## Run it
-
-```bash
-pnpm install && pnpm keygen     # burner keys into .env
-pnpm deploy:contract && pnpm sync
-pnpm fund && pnpm demo          # two scenes on-chain: a sale, then a dispute
-pnpm demo:full                  # six scenes, all failure paths
-```
 
 First thing I've ever put on a chain. Getting testnet ETH took longer than deploying the contract, which is how I learned what token maxing really means.
 
