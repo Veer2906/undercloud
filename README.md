@@ -1,190 +1,99 @@
 # Undercloud
 
-A sealed on-chain market for compute-capacity intelligence, where the seller's claim and the buyer's complaint both cost money to fake. Arbitrum Sepolia (chain 421614).
+A sealed on-chain market for compute-capacity intelligence. Autonomous agents buy and sell facts about the GPU market (a block coming off contract, a price about to move, a site going live) that the buyer cannot inspect before paying. Arbitrum Sepolia.
 
-> **Every provider, site and company in this deployment is synthetic.** The contract refuses any listing that does not carry the `SYNTHETIC` attestation bit, so this deployment cannot list a real provider. No GPU-hours are traded; only facts about them. Testnet only.
+> Every provider, site and company in this deployment is synthetic. The contract refuses any listing without the `SYNTHETIC` attestation bit. No GPU-hours are traded, only facts about them. Testnet only.
 
-Undercloud is a sealed market for the layer under the GPU price boards: which block is coming off contract, which site is going live early, which price is about to move, who is quietly shopping for two thousand GPUs, and whether a provider actually delivered the fabric it quoted. The buyers are autonomous agents run by an AI lab's compute-procurement team and by a GPU broker's sourcing desk; the sellers are capacity scouts, data-center operators and ex-employees who hold one discrete, pre-public fact and have no channel for it today (a broker wants the whole deal; an expert network wants an hour and a compliance form). The buyer cannot read the claim before paying, because reading it is consuming it. So the contract makes the seller's claim expensive to fake and the buyer's complaint expensive to fake: the seller commits to a salted hash and posts a bond of twice the price that stays locked until the date the fact should have shown up on a price board or marketplace; the buyer pays into escrow and receives the dossier encrypted to a one-time key; a buyer who thinks it was junk must post a bond and hand the decryption key to a committed Claude judge, never to the public chain. No GPU-hours change hands here - only facts about them. Every provider, site and company in this deployment is synthetic, and the contract refuses listings that do not attest to that.
+| | |
+|---|---|
+| Contract (verified) | [`0xb24cA3C97Cc483aF9c1bB24b9D89F2C7461312eb`](https://sepolia.arbiscan.io/address/0xb24cA3C97Cc483aF9c1bB24b9D89F2C7461312eb) on Arbitrum Sepolia (chain 421614) |
+| Dashboard | https://web-five-gules-93.vercel.app/ |
+| Demo video | `<FILL: video URL>` |
+| Source | https://github.com/Veer2906/undercloud |
 
-## Vertical
+## Chosen vertical
 
-| Role | Demo agent (synthetic) | Pays / earns (real-world analogue) | Decision rule the agent runs |
-|---|---|---|---|
-| Buyer 1 | **Brineholt Labs** compute-procurement agent: an AI lab renting 256-4,096-GPU training blocks in the US, H100/H200/B200/GB200 on InfiniBand or NVLink | A 512-H100 block is $0.7-1.1M/month; a 24-72 h head start on a block coming off contract is worth a first call | Auto-buy `CapacityRelease` / `NewSupply` / `PriceMove` labels for H100/H200/B200/GB200, US-West or US-East only (hard gate), InfiniBand or NVLink only (hard gate), bucket >= 256-1023, at <= 0.001 ETH, from sellers with `refuted == 0`; by policy never buys class C (`DemandSignal`, `ProviderReference`); budget 0.002 ETH |
-| Buyer 2 | **Sounding Compute** sourcing agent: a GPU broker/aggregator placing EU and APAC clients, H100/H200/MI300X/L40S | A broker's margin is the spread between what it can source at and what it resells at; a block coming free, a pre-public price cut or an RFQ in flight in its regions is a spread | Auto-buy `CapacityRelease` / `PriceMove` / `DemandSignal` labels for H100/H200/MI300X/L40S in EU-West/EU-North/APAC only (hard gate; US blocks are out of thesis), bucket >= 64-255, at <= 0.0006 ETH; budget 0.001 ETH |
-| Seller | **Scout** agent: a capacity-desk insider, DC operator or ex-employee with one fact | Earns price minus 2% on release; loses 2x price if refuted | Lists what it holds, delivers on purchase, withdraws bond after `resolveBy`, delists what nobody bought |
-| Arbiter | **Judge**: operator-run Claude (model id and rubric hash on-chain) | Nothing (no fee) | Mechanical checks first, rubric second, rules on-chain with provider-redacted reasons |
+Compute-capacity intelligence: the layer under the GPU price boards.
 
-**Why compute-intel is its own market.** Most compute-capacity intel surfaces on a predictable horizon: a capacity-desk quote, a marketplace listing, a provider price page, a daily rental index, a provider region page or press. So every label names its **resolution source** and a **resolveBy** date, and the seller's bond is locked until then. That date is the claim's own event date plus a grace period, because a "did not happen" complaint has to be filed while the bond is still locked: the buyer's window is the gap between the day the block, price or site was due and the day the bond unlocks. Two categories (`DemandSignal`, `ProviderReference`) never surface; their labels say so (`resolutionSource: "counterparty confirmation only (never public)"`), the bond lock is the whole warranty, buyers enforce a minimum lock length for them, and they trade at a discount because nothing public can ever refute them (the demo's `DemandSignal` is its cheapest listing for exactly this reason). That is what makes this a compute-intel market and not a generic secret market. Verifiability classes: **A** `CapacityRelease` and every `PriceMove` except `reserved-rate-change` (days-weeks: a desk quote or a board); **B** `NewSupply`, `reserved-rate-change` (weeks-months: press, region pages, per-deal quotes; the bond is locked for the go-live horizon and sellers price that capital cost into the fact); **C** `DemandSignal`, `ProviderReference` (never; class-C references leak the most and may label region `undisclosed`). Absence from a board is never evidence for a `CapacityRelease` - a block rented privately, including by the buyer, never lists - so `DidNotHappen` there requires contradiction. The seller is the party with legal exposure, not the buyer: the per-run Scout identity, the provider-free label, the month-precision `observedAt`, the sealed dossier and the provider-redacted rulings protect a capacity-desk employee from the chain; nothing protects them from an employer counting who knew, which is also why a real deployment needs a compliance layer above this contract.
+I'd been reading about the compute space for a while, and while researching a company called Orn that works on compute-related products, it clicked that the interesting thing to trade isn't the GPU-hour itself (you can benchmark a server, so it's a normal rental) but the information around it: which 512-H100 block frees up next month, which provider is about to cut on-demand pricing, which site goes live early. That information is worth real money to whoever is shopping (a 512-GPU block is roughly a million dollars a month and clears in hours), it can't be shown before it's paid for, and today it has no channel: brokers want the whole deal and expert networks want an hour, not a sentence. Putting it on-chain with bonds and a committed judge felt like the right spin.
 
-**Market context (figures dated; estimates marked).** Silicon Data's H100 neocloud rental index stood at $2.53/GPU-hr on 2026-09-11 ([Silicon Data](https://www.silicondata.com/products/silicon-index/h100); [IEEE Spectrum on the index](https://spectrum.ieee.org/gpu-prices)), median on-demand H100 was about $3.40, up roughly 10% in 90 days ([Thunder Compute, Sep 2026](https://www.thundercompute.com/blog/ai-gpu-rental-market-trends)), and one-year H100 contracts rose from ~$1.70 to ~$2.35/GPU-hr between Oct 2025 and Mar 2026 ([Spheron on CME compute futures](https://www.spheron.network/blog/compute-futures-cme-gpu-contracts-ai-buyers/)). At $2.00-3.00/GPU-hr a 512-H100 block is $0.74-1.1M per month (512 x 720 h; est.), and CME's compute futures on the Silicon Data H100 and B200 indices launch on 2026-10-05, one contract per month of rent ([CME press release, 2026-08-11](https://www.cmegroup.com/media-room/press-releases/2026/8/11/cme_group_and_silicondatatolaunchcomputefuturesonoctober5tounloc.html)). The boards where a `CapacityRelease` surfaces are the resale and reservation marketplaces: [SF Compute](https://sfcompute.com) lets tenants resell reserved blocks (a listed resale example sat 43% above the reservation rate) and [Shadeform](https://shadeform.com/features/reserved-commitments) takes reservations from one node to multi-year terms. Provider quality is rated, not priced, by [SemiAnalysis ClusterMAX](https://www.clustermax.ai/). A fact that buys a procurement agent a 24-72-hour head start on such a block is worth 0.05-0.5% of one month's contract value (est.), $500-$5,000, an order of magnitude below any broker spread, which is why a seller with one fact and no book of business sells here rather than through a broker. Demo prices are dust (0.0004-0.0009 ETH, testnet).
+Participants in the demo:
+
+| Role | Agent | What it does |
+|---|---|---|
+| Seller | **Scout** | An insider with one pre-public fact. Lists a sealed dossier, delivers on purchase. |
+| Buyer | **Brineholt Labs** | An AI lab's procurement agent. Buys US H100/H200/B200/GB200 blocks on InfiniBand or NVLink under a price cap. |
+| Buyer | **Sounding Compute** | A GPU broker's sourcing agent. Buys EU and APAC capacity, price moves and demand signals. |
+| Arbiter | **Judge** | Operator-run Claude judge. Model id and rubric hash are immutable in the contract. Rules only on disputes. |
+
+Most compute intel surfaces later on a predictable horizon (a marketplace listing, a provider price page, press), so every listing names a resolution source and a `resolveBy` date, and the seller's bond stays locked until then.
 
 ## Trust assumptions
 
-1. **One committed arbiter.** A single operator-run key executes Claude (`claude-opus-5`) with a rubric whose keccak256 is immutable in the contract, and publishes its reasons on-chain. Auditable (model id, rubric hash, reasons, mechanical checks are all public) but not trustless. Because disputes are sealed to the arbiter, third parties cannot re-run the judge on the dossier; we chose provider confidentiality over public auditability. A colluding buyer + arbiter can extract at most `price/2` per deal; a colluding seller + arbiter at most 1.5x price from a disputing buyer; a silent arbiter lets a seller keep half the escrow, which is why unadjudicated is counted separately. Upgrade path: N-of-M judge keys or Kleros-style arbitration.
-2. **Sequencer time.** All deadlines use `block.timestamp`. Demo windows are 90 s / 180 s / 600 s; production values are 48 h / 24 h / 7 d, and production `expiresAt` should be days because prices move daily.
-3. **Encryption and the commitment are off the contract's verification path.** The commitment lets the buyer and arbiter prove substitution; non-delivery is caught by the deliver timeout; garbage that hashes correctly is caught only by the arbiter.
-4. **Nobody verifies the GPUs exist.** The contract never touches a provider API, a benchmark or an inventory. It prices the credibility of a claim about capacity, not the capacity.
-5. **Providers are synthetic.** The contract requires the `SYNTHETIC` attestation bit; this deployment cannot list a real provider.
-6. **Ethereum Sepolia has a published end-of-life of 2026-09-30.**
+1. **One committed arbiter.** A single key runs Claude (`claude-opus-5`) with a rubric whose keccak256 is fixed in the contract, and publishes provider-redacted reasons on-chain. Auditable, not trustless. A colluding buyer and arbiter can extract at most half the price per deal; a silent arbiter results in a no-fault unwind that is counted as `unadjudicated`, never as a win.
+2. **Sequencer time.** All deadlines use `block.timestamp`. Demo windows are 90 s / 180 s / 600 s; production would be 48 h / 24 h / 7 d.
+3. **The contract never sees plaintext.** The commitment proves substitution and non-delivery; garbage that hashes correctly is caught only by the arbiter.
+4. **Nobody verifies the GPUs exist.** The market prices the credibility of a claim about capacity, not the capacity.
+5. **Ethereum Sepolia has a published end-of-life of 2026-09-30**, so explorer links may degrade after that.
 
 ## Biggest design decision
 
-**Sealed-key disputes with a resolution deadline, instead of public reveal.** The obvious way to settle "was it worth it" is to make the buyer publish the dossier and let everyone judge. In a compute-intel market that publishes a provider's unannounced price cut, a tenant's contract end, or a lab's RFQ on a public chain forever as the cost of a commercial quarrel - the one thing a market that providers must tolerate can never do, and for listed providers a potential disclosure problem. So the buyer reveals its one-time decryption key *encrypted to the arbiter*, the arbiter verifies the key against the on-chain purchase key, and the only things that ever reach the chain are the provider-free label, ciphertext, the key sealed to the arbiter, a reason code, a provider-free evidence string and provider-redacted reasons. The price of this choice is that rulings are checkable by the operator, not by the public. Paired with it: the seller's bond stays locked until `resolveBy`, the date they themselves said the fact would hit a board, and a `DidNotHappen` dispute exists until then - "paid on delivery, on the hook until the outcome."
+Sealed-key disputes instead of public reveal. The obvious way to settle "was it worth it" is to make the buyer publish the dossier and let everyone judge. In this market that would put a provider's unannounced price cut or a tenant's contract end on a public chain forever as the cost of a quarrel. So the buyer reveals its one-time decryption key encrypted to the arbiter only; the arbiter checks that key against the on-chain purchase key, checks the hash, applies the rubric, and rules. The only things that ever reach the chain are a provider-free label, ciphertext, a sealed key, a reason code and redacted reasons. The cost is that rulings are checkable by the operator, not by the public. Paired with it: the seller's bond stays locked until the date the seller itself said the fact would surface, and a `DidNotHappen` dispute exists until then.
 
 ## One important limitation
 
-The market prices **credibility, not capacity**. Nobody in this system verifies that the GPUs exist, that the fabric is InfiniBand, or that the block is actually free on the 30th; the arbiter can judge whether a dossier is consistent with its label, specific, plausibly not yet on a board as of the listing date, free of credentials and contract text - and, after release, whether the buyer's evidence shows it did not happen. A well-crafted fabrication that satisfies all of that passes, and `attest()` ("it showed up on the board") is buyer-attested and self-dealable. A seller can re-sell the same fact under a fresh salt; exclusivity is enforced against the commitment, not the information. And in a world of roughly eighty rated neoclouds, "2,048 H200, US-East, InfiniBand, live in November" can identify a site: coarse buckets mitigate label leakage but do not solve it. NO_NDA forbids the document, not the fact: the substance of a private commercial term is the good, and where the provider is a listed company selling it may still be a disclosure problem the attestation cannot cure. A real deployment needs a compliance layer above this contract. Bonds are sized to the price of the fact, not to the decision it moves: a 512-GPU block is about a million dollars a month, the bond behind a fact about it is a few thousand, and damages are capped at half the price. A provider or broker willing to burn a bond to steer a competitor's procurement is deterred only by the refuted counter on its address, which a fresh key erases. Buyers here treat a fact as a reason for a first call, never as a reason to sign.
+The market prices credibility, not capacity. Nobody verifies that the GPUs exist or that the block is actually free; a well-crafted fabrication that is specific, label-consistent and not yet on any board passes the judge. Reputation is per address, so a refuted seller can start over with a fresh key. And coarse label buckets reduce, but do not remove, the chance that "2,048 H200, US-East, InfiniBand, live in November" identifies a site.
 
-## How it works (60 seconds)
+## How a trade works
 
-1. **Commit and bond.** Seller posts `contentHash = keccak256(abi.encode(seller, canonicalDossierJson, salt))`, a provider-free public label (accelerator, GPU-count bucket, region, interconnect, availability window, price band, claim type, when it should surface), a price, and a bond of 2x price. The listing timestamp is the seller's proof they knew this on that date. An identical commitment can never be listed twice; the same dossier under a new salt can (see Limitation). Salting is what stops dictionary attacks on short dossiers, so this trade-off is deliberate.
-2. **Pay blind.** A procurement or sourcing agent scores the label against its thesis and the seller's on-chain track record, generates a fresh one-time keypair, and pays the exact price into escrow.
-3. **Sealed delivery.** Seller encrypts `{dossier, salt}` to that key (ECIES) and puts the ciphertext in calldata. Buyer decrypts locally and checks the hash. No provider, site or price is ever written to the chain in plaintext.
-4. **Paid on delivery, on the hook until the outcome.** After a 90-second quality window (48 h in production) anyone can release the price (minus a 2% burn) to the seller. The bond stays locked until `resolveBy`, the date the seller said the fact would hit a board.
-5. **Complaining costs money and a key.** Inside the window the buyer may dispute (bad ciphertext, mislabeled, already on a board, incoherent, credentials or contract text present); after release and before `resolveBy` the buyer may dispute "did not happen". Either way the buyer posts half the price as a dispute bond and reveals its one-time key encrypted to the arbiter only.
-6. **Committed judge.** The arbiter address, its Claude model id, and the keccak of its rubric are immutable in the contract. It decrypts, checks the revealed key against the purchase key, checks the hash, applies the rubric, and rules on-chain with provider-redacted reasons. Buyer wins: refund + dispute bond + half the price in damages; the rest of the seller's bond is burned. Seller wins: seller takes the dispute bond. Silent arbiter: no-fault unwind, recorded as "unadjudicated", never rounded to a win in the counters (the seller still keeps half the escrow). Every payout is push-then-pull: a counterparty that rejects ETH is credited in `owed` and pulls with `withdrawOwed()`, so nobody can hold a deal hostage by refusing payment.
-7. **Reputation is counts, not a score.** Settled, confirmed-later, refuted, unadjudicated, ghosted, volume per seller; bought, disputes filed/lost per buyer. Unchallenged is not confirmed.
+1. **Commit and bond.** Seller posts `keccak256(seller, canonicalDossierJson, salt)`, a provider-free label (accelerator, GPU-count bucket, region, interconnect, price band, availability months, resolution source, `resolveBy`), a price, and a bond of 2x price.
+2. **Pay blind.** A buyer agent scores the label against its thesis and the seller's on-chain counters, generates a fresh one-time key, and pays the exact price into escrow.
+3. **Sealed delivery.** Seller encrypts `{dossier, salt}` to that key (ECIES) and puts the ciphertext in calldata. Buyer decrypts locally and checks the hash.
+4. **Quality window.** The buyer runs mechanical checks (label consistency, forbidden content, public-record lookup) and may dispute with a bond of half the price. Otherwise the price releases to the seller minus a 2% burn; the bond stays locked until `resolveBy`.
+5. **Ruling.** Buyer wins: refund + dispute bond + half the price in damages, the rest of the bond burned. Seller wins: seller takes the dispute bond.
+6. **Timeouts.** Seller never delivers: buyer refunded plus 10% of the bond. Arbiter never rules: no-fault split, counted as unadjudicated.
 
-State machine: `Listed -> Paid -> Delivered -> Released -> [bond withdrawn after resolveBy]`, with `delist` (from Listed), `refundUndelivered` (from Paid after `deliverTimeout`), `dispute` (from Delivered inside the window, or from Released with `DidNotHappen` before `resolveBy`) leading to `Disputed -> RuledBuyer | RuledSeller | Unadjudicated`. One contract, no imports, no owner, no upgradeability: [`contracts/src/Undercloud.sol`](contracts/src/Undercloud.sol).
+## Other design decisions
 
-## Money table
+- **Money.** Bond = 2x price. Dispute bond = ceil(price/2). Fee = 2% of price, burned. Buyer-wins burn = 1.5x price. Payouts are push-then-pull so a counterparty that rejects ETH can never block a settlement.
+- **Reputation is counts, not a score.** Per seller: listed, sold, settled, confirmed, refuted, disputesWon, unadjudicated, ghosted, volume. Per buyer: bought, disputesFiled, disputesLost. Unchallenged is not confirmed.
+- **Dispute reasons.** `NotAsCommitted`, `NotAsLabeled`, `AlreadyPublic`, `Incoherent`, `ForbiddenContent`, `DidNotHappen`. The first five are available inside the quality window; the last only after release, until `resolveBy`.
+- **Forbidden content.** A dossier containing credentials, NDA'd contract text or provider-staff contact data is slashed even if true. The market will not be a fence for stolen access.
+- **Listing categories.** `CapacityRelease`, `NewSupply`, `PriceMove`, `DemandSignal`, `ProviderReference`, each with a fixed claim-type menu. Two of them never surface publicly, and their labels say so.
+- **Attestations required by the contract.** `NO_NDA`, `NO_CREDENTIALS`, `PROVIDER_LEVEL_ONLY`, `SYNTHETIC`.
+- **Judge with a fallback.** With `ANTHROPIC_API_KEY` set, the agents' reasoning is model-written and the ruling says `claude-opus-5`; without it, the same mechanical rules decide and the ruling says `deterministic`. Outcomes are identical because the demo's fraud cases trip mechanical checks.
+- **Re-runnable demo.** Each run uses fresh salts and a fresh per-run scout identity derived from the treasury key.
 
-P = price, B = 2P (seller bond), D = ceil(P/2) (buyer dispute bond), F = 0.02P (fee, burned to `0x…dEaD`).
+## Stack
 
-| Terminal transition | Buyer receives | Seller receives | Burned | Reputation |
-|---|---|---|---|---|
-| Released, then withdrawBond | 0 | P - F now; B after `resolveBy` | F | seller settled++, volume += P |
-| RuledBuyer (quality dispute) | P + D + P/2 | 0 | 1.5P | seller refuted++ |
-| RuledBuyer (outcome dispute, after release) | P + D + P/2 (from the bond) | already had P - F | 0.5P | seller refuted++ (settled stays) |
-| RuledSeller (quality), then withdrawBond | 0 | P - F + D now; B after `resolveBy` | F | seller settled++, disputesWon++; buyer disputesLost++ |
-| RuledSeller (outcome), then withdrawBond | 0 | D now; B after `resolveBy` | 0 | seller disputesWon++; buyer disputesLost++ |
-| Unadjudicated (quality; arbiter silent 600 s) | D + P/2 | P - P/2 + B | 0 | seller unadjudicated++ |
-| Unadjudicated (outcome) | D | B | 0 | seller unadjudicated++ |
-| Refunded (seller never delivered, 180 s) | P + B/10 | B - B/10 | 0 | seller ghosted++ |
-| Delisted (seller, while Listed) | - | B | 0 | - |
-
-Invariant checked after every step in the tests: contract balance == sum over listings of held bond + escrowed price + dispute bond + sum of `owed` (payouts a payee could not receive). Every wei of price, bond and dispute bond ends in exactly one of {buyer, seller, burn}; for odd prices the outcome burn is `ceil(P/2)` and damages `floor(P/2)` (conservation holds, fuzz-tested).
-
-## Failure modes
-
-| Failure mode of this vertical | Designed against by |
-|---|---|
-| Fabricated or "ghost" capacity (io.net-style spoofed GPUs; blocks that do not exist) | 2x bond at risk twice: quality dispute inside the window, or `DidNotHappen` dispute after release until `resolveBy` (the desk denied the block, the price page or index showed the old rate on the effective date, the site announced a slip). Losing burns 1.5x price (quality) or 0.5x price (outcome) and pays the buyer damages. Absence from a board is not evidence for a `CapacityRelease`. |
-| Stale facts (prices move daily) | `expiresAt` closes purchases; `observedAt` (month precision) and `availabilityWindow` (month granularity) in the label; the buyer refuses labels whose window has already passed on the chain's clock (`ProviderReference` excepted: a completed tenancy is in the past by definition); production `expiresAt` is days, not weeks, and for `CapacityRelease` / `PriceMove` no later than the claim's own event date. A fact that becomes public after `listedAt` but before purchase is the buyer's risk (`AlreadyPublic` is judged at `listedAt`), the other reason production `expiresAt` is days. |
-| Already on a price board / marketplace / index (the commonest junk here: the boards are free) | `listedAt` timestamp + `noveltyAssertion`; `AlreadyPublic` is an explicit dispute reason judged against a public record dated before `listedAt`. Deterministic fallback uses `agents/data/public_record.json` matched on provider + category (+ accelerator, region and claimType where the record carries them) within a 90-day lookback before `listedAt`, because providers reprice monthly and open sites in phases. |
-| Interested-party seeding (a provider or broker plants a false release, price move or RFQ to move a rival's decision) | Not deterred by the bond (sized to the fact, not the decision). Mitigated only by `sourceBasis`, seller counters and buyers treating facts as a first call, not a signature. Stated limitation. |
-| Real GPUs, but not the interconnect / power / networking claimed | `interconnect` is a label field the payload must match (`NotAsLabeled`); `ProviderReference` carries `deliveredInterconnectAsPromised` as a structured boolean; fabric claims that are contradicted are `DidNotHappen` until `resolveBy`. Not verified by the contract: stated limitation. |
-| Short `resolveBy` (seller shrinks "on the hook until the outcome" to zero) | The contract only enforces `resolveBy > expiresAt`, so buyers refuse listings whose outcome window could be empty: `resolveBy - now >= deliverTimeout + qualityWindow + MIN_OUTCOME_WINDOW`, the label's `resolveBy` must match the chain's, and class-C listings must lock the bond for at least `CLASS_C_MIN_LOCK_SECONDS` (30 d in production). |
-| Bad or wrong-key ciphertext | `NotAsCommitted`: the arbiter derives the pubkey from the revealed key, compares it to the `Purchased` event, decrypts, recomputes the hash. Objective; no LLM involved. |
-| Credentials or "access" sold as intel (LLMjacking, leaked tokens) | `ForbiddenContent`: forbidden-key scan (`apiKey`, `token`, `secret`, `password`, `sshKey`, `privateKey`, `credentials`, `kubeconfig`, …) plus value patterns (`sk-…`, `AKIA…`, `-----BEGIN`, `ssh-ed25519 …`, JWTs, `hf_…`); `ATTEST_NO_CREDENTIALS` required by the contract; slashes even a true dossier. |
-| NDA'd contract text / MNPI-like terms from listed providers | `ForbiddenContent`: `contractExcerpt`, `nda`, `ndaText`, `msa` keys and contract-language value patterns are forbidden; `ATTEST_NO_NDA` required; the payload carries a price integer and a term, never a clause; `counterparties` are roles, never names (except the shopping organization in a `DemandSignal`). The attestation forbids the document, not the fact: stated limitation. |
-| Contact data of provider staff | `ForbiddenContent`: `email`, `phone`, `mobile`, `contact`, `homeAddress` keys and email/phone value patterns; `introPath` is a ROLE ("via the provider's capacity desk"), never an individual; `ATTEST_PROVIDER_LEVEL_ONLY` required. |
-| Provider identification from the label (small world: ~80 rated neoclouds) | Label has no provider, site, exact GPU count, exact price or exact date by construction (zod `.strict()`); coarse buckets (`gpuCountBucket`, `priceBand` - and `n/a` for `PriceMove`, whose magnitude is the good - `region`, month-granularity `availabilityWindow` and `observedAt`) and a fixed `claimType` menu; `ProviderReference` labels may carry region `undisclosed`. Mitigated, not solved; stated limitation. |
-| Buyer's remorse (pay, read, claim worthless) | Dispute bond = ceil(price/2) forfeited on loss; `disputesFiled` / `disputesLost` on-chain per buyer; damages capped at price/2, so even a captured arbiter yields at most +0.5x price per deal. A baseless dispute wins 1.5x price and loses 0.5x, so it is only +EV if the judge sides with baseless complaints more than 25% of the time; the rubric puts the burden of proof on the buyer and the no-LLM fallback always rules for the seller absent a mechanical ground. |
-| Competitor griefing a good seller | Same dispute bond; the loser pays the seller; the dossier is never published, so griefing cannot even leak the block. |
-| Ghost seller | `refundUndelivered` after `deliverTimeout`: buyer gets price + 10% of the bond, `ghosted++`. `deliver` is closed at the same second, so a late junk delivery cannot pre-empt the refund. |
-| Counterparty that refuses ETH (contract wallet with a reverting `receive()`) | Push-then-pull payouts: a failed transfer is credited in `owed` (`PaymentDeferred`) instead of reverting the settlement; the payee pulls with `withdrawOwed()`. Nobody can lock the other side's funds by rejecting payment. |
-| Ghost arbiter | `timeoutDispute` after `arbiterTimeout`: escrowed price split 50/50, bond returned, `unadjudicated++`. Silence is not evidence. |
-| Wash trading / self-dealt reputation | `buyer != seller` enforced; 2% of every release burned; volume shown next to counts; `attest()` only increments a display counter and unlocks nothing. |
-| Content swap after sale | Impossible: the commitment is bound at listing and the ciphertext must decrypt to it. |
-
-**Not caught (stated limitations).** Re-salted resale of the same fact (exclusivity is per commitment, not per information). A convincing fabrication that is specific, label-consistent and not on any board. Nobody verifies the hardware: no provider API, benchmark or inventory is ever consulted. Sybil sellers: reputation is per address and a new address has `refuted = 0`, so the gate is negative-only (a refuted seller rotates keys; the demo's per-run Scout identity is exactly that), the 2% burn is zero at dust prices so counts can be farmed, and volume is displayed so a reader can discount them. Self-attested "confirmed" counters. Label leakage: accelerator + bucket + region + interconnect + window can identify a site among roughly eighty rated neoclouds; coarse buckets, month windows, `n/a` bands on price moves and `undisclosed` regions on references mitigate this but do not solve it. Interested-party seeding: the bond is sized to the fact, not to the decision it moves, so a provider or broker can burn a bond to steer a rival. Arbiter dishonesty (see Trust assumptions).
-
-## Reputation
-
-On-chain counters per address, no score. Seller: `listed, sold, settled, confirmed, refuted, disputesWon, unadjudicated, ghosted, volume`. Buyer: `bought, disputesFiled, disputesLost`. The dashboard derives hit rate = `confirmed / (confirmed + refuted)` and shows `unadjudicated` separately. Unchallenged is not confirmed; attested is.
-
-## Prior art
-
-GPU marketplaces ([SF Compute](https://sfcompute.com) resale of reserved blocks, [Shadeform](https://shadeform.com) aggregation with the markup baked into the displayed price, [Vast.ai](https://vast.ai) verified-host tiers, [Prime Intellect](https://www.primeintellect.ai/blog/compute), [io.net](https://io.net) and its [April-2024 spoofed-GPU incident](https://ionet.medium.com/25th-april-incident-report-176e5fb5c576), [Akash](https://akash.network), [Compute Exchange](https://compute.exchange)) trade capacity, not facts about it, and the ones that self-report inventory have been gamed; price discovery lives in [Silicon Data's daily indices](https://www.silicondata.com/products/silicon-index) (now underlying [CME compute futures](https://www.cmegroup.com/markets/energy/power/compute-futures.html)) and provider quality in [SemiAnalysis ClusterMAX](https://www.clustermax.ai/), all lagging, all public; Undercloud is the pre-public layer beneath them. [Erasure / Erasure Bay](https://github.com/erasureprotocol/erasure-protocol) got stake + hashed track record right, but its griefing-without-arbiter is negative-sum and invites spam flooding ([Gans's critique](https://joshuagans.substack.com/p/the-problem-with-numerais-erasure-protocol-225c182b3651)); Undercloud replaces griefing with bonded, adjudicated disputes. [Arkham Intel Exchange](https://info.arkm.com/announcements/arkham-intel-exchange) is the closest live analogue (staked hunters slashed for junk, [strict content rules](https://info.arkm.com/announcements/guidelines-for-the-arkham-intel-exchange)); we borrow the compliance wall and add per-listing bonds and sealed delivery. The state machine follows the [Kleros ERC-792 escrow](https://github.com/kleros/erc-792) shape ([example](https://kleros.mintlify.app/developers/examples/escrow-contract)): fund, reclaim by depositing the arbitration cost, `rule()` enforces; ours is optimistic by default like the [UMA optimistic oracle](https://docs.uma.xyz/protocol-overview/how-does-umas-oracle-work), whose escalation layer is where capture happens ([Polymarket, March 2025](https://www.theblock.co/post/348171/polymarket-says-governance-attack-by-uma-whale-to-hijack-a-bets-resolution-is-unprecedented)), which is why a single explicitly-trusted committed judge is more honest for a demo than a fake jury ([a16z on committed AI judges](https://a16zcrypto.com/posts/article/ai-judges-scale-prediction-markets/)). NDA and credential attestations come from the same place GPUaaS contracts do: take-or-pay terms are private and two of the largest providers are listed companies ([A&O Shearman on GPUaaS contracts](https://www.aoshearman.com/en/insights/gpuaas-contracts-capital-and-compute-in-the-ai-infrastructure-boom)); the credential rules answer LLMjacking, stolen cloud credentials resold as "access" ([Sysdig](https://www.sysdig.com/blog/llmjacking-stolen-cloud-credentials-used-in-new-ai-attack)). The whole design is a response to [Arrow's information paradox](https://en.wikipedia.org/wiki/Arrow_information_paradox): [zero-knowledge contingent payment](https://eprint.iacr.org/2017/566) solves it only for machine-checkable goods, and compute-intel is not one, so we make the claim about the good costly to lie about instead. Portable reputation upgrade path: post settlement feedback to the [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) reputation registry (deployed on Arbitrum Sepolia), escrow-gated so only the paying buyer can rate.
-
-## Repo layout
-
-```
-contracts/   Foundry 1.8.1, solc 0.8.34. src/Undercloud.sol (one contract, no imports), test/Undercloud.t.sol (19 tests) +
-             test/Audit.t.sol (9 adversarial regression tests: reverting/gas-burning payees, late delivery, reentrancy),
-             script/Deploy.s.sol, rubric.md (keccak256 of these exact bytes is the on-chain rubricHash)
-agents/      TypeScript (viem, eciesjs, zod, @anthropic-ai/sdk). src/agents/{seller,buyer,arbiter}.ts, src/crypto.ts
-             (canonical JSON, commitment, ECIES), src/schema.ts (labels, payloads, forbidden content, mechanical rubric)
-             + src/schema.test.ts (dataset checks), data/dossiers.json + public_record.json (synthetic),
-             scripts/{keygen,balance,fund,sync,demo,demo-env,sweep}.ts
-web/         Next.js 16 dashboard (App Router, Tailwind v4, viem; no wallet). Reads events from the contract; deployed standalone to Vercel.
-scripts/     deploy.sh, verify.sh (Arbiscan via Etherscan API V2, Sourcify fallback), anvil-deploy.sh (local), lib.sh
-```
+- **Contract:** Solidity 0.8.34, one file, no imports, no owner, no upgrades. Foundry 1.8.1; 28 tests including value-conservation fuzzing and an adversarial suite. [`contracts/src/Undercloud.sol`](contracts/src/Undercloud.sol), rubric at [`contracts/rubric.md`](contracts/rubric.md).
+- **Agents:** TypeScript on Node 22 with viem 2, eciesjs (secp256k1 ECIES, so a buyer's one-time Ethereum key is also its decryption key), zod, and the Anthropic SDK. [`agents/`](agents/).
+- **Dashboard:** Next.js 16 with viem, no wallet needed; it rebuilds every deal from contract events. [`web/`](web/), deployed on Vercel.
+- **Chain:** Arbitrum Sepolia (421614), verified on Arbiscan via the Etherscan API.
 
 ## Run it
 
-Requires Node 22, pnpm 10, Foundry 1.8.1. All commands run from the repo root. Never reuse a real wallet: `pnpm keygen` writes fresh testnet burner keys into `.env` (gitignored).
-
 ```bash
-pnpm install && pnpm keygen      # writes .env with 5 burner keys; prints the DEPLOYER address to fund
-pnpm balance                     # fund the deployer with >= 0.02 Arbitrum Sepolia ETH (faucet links printed by keygen)
-pnpm bridge                      # no-account route: mine Ethereum Sepolia ETH at a PoW faucet, then bridge it here via Arbitrum's Inbox
-pnpm test:contracts              # forge test -vvv (28 tests incl. commitment vector + value-conservation fuzz)
-pnpm deploy:contract             # scripts/deploy.sh: tests, deploys, verifies on Arbiscan if ETHERSCAN_API_KEY is set
-pnpm verify:contract             # scripts/verify.sh: re-verify after the fact (Sourcify fallback without a key)
-pnpm sync                        # writes agents/src/contract.ts + web/src/lib/generated/contract.ts from the broadcast
-pnpm fund                        # deployer tops up scout treasury 0.008, Brineholt Labs 0.003, Sounding Compute 0.002, arbiter 0.001 ETH
-pnpm demo                        # two scenes (a sale, a dispute), ~2.5 min, ends with a recap; deterministic without ANTHROPIC_API_KEY
-pnpm demo:full                   # six scenes (adds forbidden content, ghost seller, bond unlock, delist), ~6 min
-pnpm sweep                       # withdraw unlocked bonds, delist expired listings, return scout ETH to the treasury; safe any time
-pnpm web                         # dashboard at http://localhost:3000
-pnpm web:build                   # must pass before `cd web && vercel --yes`
+pnpm install && pnpm keygen   # five burner keys into .env; prints the deployer address to fund
+pnpm bridge                   # optional: bridge mined Ethereum Sepolia ETH to Arbitrum Sepolia
+pnpm test:contracts           # forge test
+pnpm deploy:contract          # deploy + verify, then: pnpm sync
+pnpm fund                     # top up the agent wallets from the deployer
+pnpm demo                     # two scenes on-chain (~2.5 min): a sale, then a dispute
+pnpm demo:full                # six scenes (~6 min): adds forbidden content, ghost seller, bond unlock, delist
+pnpm sweep                    # withdraw unlocked bonds from past runs
+pnpm web                      # dashboard at http://localhost:3000
 ```
 
-`pnpm --filter agents test` runs the TS unit tests (commitment vector, ECIES round-trip, forbidden-content scan and label/payload consistency over the synthetic dataset). Optional `.env` knobs: `ANTHROPIC_API_KEY` (the agents' reasoning becomes model-written; outcomes are identical because the fraud scenes trip mechanical rules), `DEMO_MODE` (`short`, the default behind `pnpm demo`, or `full`, what `pnpm demo:full` sets), `DEMO_PACE` (ms per narrated line), `ARBITRUM_SEPOLIA_RPC_URL` (swap for a free Alchemy/dRPC URL on 429s), `MIN_OUTCOME_WINDOW` (seconds of outcome window the buyers insist on beyond `deliverTimeout + qualityWindow`; default 10), `CLASS_C_MIN_LOCK_SECONDS` (minimum bond lock buyers require on `DemandSignal` / `ProviderReference`; 30 days by default, 200 s inside `pnpm demo`), `UNDERCLOUD_ADDRESS` / `DEPLOY_BLOCK` (point the agents at a contract without re-running `pnpm sync`), `REPO_URL` (GitHub URL; `pnpm sync` writes it into the dashboard's source links). The buyer keys are `BUYER_LAB_PRIVATE_KEY` and `BUYER_BROKER_PRIVATE_KEY`; `keygen` fills them. With an API key the buyer's grader may also dispute on judgment and can lose its bond; the arbiter is the same model with the burden of proof on the buyer.
+Local rehearsal without testnet ETH: see [`agents/.env.local.example`](agents/.env.local.example) (Anvil with `--chain-id 421614`).
 
-Production guidance for sellers: for `CapacityRelease` and `PriceMove` set `expiresAt` no later than the claim's own event date - after that date the fact is on the board by construction and any purchase is stale, even though `listedAt` still proves possession; set `resolveBy` to the event date plus the grace period (14 days for `CapacityRelease` and `PriceMove`, 30 days for `NewSupply`; for `DemandSignal` and `ProviderReference` the seller chooses the lock length, and buyers may read a longer lock as a stronger warranty). The demo compresses all of this to seconds.
+## Prior art
 
-**Local rehearsal without testnet ETH** (Anvil dev keys only; full recipe in [`agents/.env.local.example`](agents/.env.local.example)):
+[Erasure](https://github.com/erasureprotocol/erasure-protocol) (stake plus hashed track record; its griefing model is negative-sum, so this uses bonded, adjudicated disputes instead), [Arkham Intel Exchange](https://info.arkm.com/announcements/arkham-intel-exchange) (staked hunters, strict content rules), the [Kleros ERC-792 escrow](https://github.com/kleros/erc-792) state machine, [UMA's optimistic oracle](https://docs.uma.xyz/protocol-overview/how-does-umas-oracle-work) for the optimistic default, and [Arrow's information paradox](https://en.wikipedia.org/wiki/Arrow_information_paradox), which is the whole problem. Market context: [SF Compute](https://sfcompute.com) and [Shadeform](https://shadeform.com) are where a capacity release actually surfaces; [Silicon Data's H100 index](https://www.silicondata.com/products/silicon-index/h100) and [CME compute futures](https://www.cmegroup.com/media-room/press-releases/2026/8/11/cme_group_and_silicondatatolaunchcomputefuturesonoctober5tounloc.html) are the price boards.
 
-```bash
-anvil --chain-id 421614 --port 8547 --block-time 1                    # terminal 1
-cd contracts && ARBITER_ADDRESS=0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 \
-  ARBITER_PUBKEY=0x04bf6ee64a8d2fdc551ec8bb9ef862ef6b4bcb1805cdc520c3aa5866c0575fd3b514c5562c3caae7aec5cd6f144b57135c75b6f6cea059c3d08d1f39a9c227219d \
-  QUALITY_WINDOW=15 DELIVER_TIMEOUT=30 ARBITER_TIMEOUT=45 \
-  forge script script/Deploy.s.sol:Deploy --rpc-url http://127.0.0.1:8547 \
-    --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
-cp broadcast/Deploy.s.sol/421614/run-latest.json broadcast/local-run-latest.json && rm -rf broadcast/Deploy.s.sol/421614; cd ..
-cp agents/.env.local.example agents/.env                              # agents/.env overrides root .env, gitignored
-SYNC_LOCAL=1 pnpm sync
-DEMO_EXPIRES_IN=60 DEMO_RESOLVE_IN=90 DEADLINE_MARGIN=3 DEMO_PACE=0 pnpm demo:full   # ~90 s (`pnpm demo` for the two-scene run)
-rm agents/.env contracts/broadcast/local-run-latest.json              # then `pnpm sync` again after the real deploy
-```
+## A note
 
-(`bash scripts/anvil-deploy.sh` does the deploy step against an Anvil on port 8545 with 20/40/60 s windows.)
-
-## Demo scenes
-
-Both demo commands run one process with all four agents on a 3-second tick against the deployed contract; the agents act on chain state, and the orchestrator prints a boxed scene banner (number, title, one-line explainer) when a scene opens: in `pnpm demo` just before the scout lists the dossier that opens it, in `pnpm demo:full` the first time it observes the triggering event. Each run uses fresh salts and a fresh per-run Scout identity (derived from the scout treasury key), so it is re-executable. Every step is a real transaction; every tx hash is printed as a full Arbiscan link. Seller and arbiter are restart-safe; a buyer keeps its one-time purchase keys in memory and in `agents/.state/<runId>.json` (mode 0600).
-
-**`pnpm demo` - two scenes, about 2.5 minutes** (`DEMO_MODE=short`, the default). The scout lists one dossier at a time and lists the second only after the first is `Released`, so the two mechanisms play out one after the other.
-
-1. **A sale (~110 s, of which 90 s is the quality window).** The scout lists D1 (a US H100 `CapacityRelease`) as a salted hash + provider-free label with a 2x bond; Brineholt Labs scores it, buys blind with a fresh one-time key; the scout delivers the ciphertext on-chain; the lab decrypts locally, prints `commitment OK` and keeps the dossier. A live countdown runs through the 90-second quality window (the buyer may still dispute), then the buyer calls `release`: seller 98%, 2% burned, and the bond stays locked until `resolveBy` (withdraw it later with `pnpm sweep`).
-2. **A dispute (~40 s).** The scout lists D2 (an EU on-demand H100 price cut); Sounding Compute buys blind; the scout delivers; the broker decrypts and its mechanical check finds the fact on a synthetic price board dated before `listedAt`; it files a bonded `AlreadyPublic` dispute with its key sealed to the judge. The judge opens the sealed key, checks key + hash, rules buyer wins: buyer refunded + dispute bond + damages, 1.5x price burned, seller `refuted = 1`.
-
-It ends with a recap box: scene → outcome → tx count, every tx as an Arbiscan link, the seller's and buyers' on-chain counters, and the `pnpm sweep` reminder. D3-D5 are not listed in this mode.
-
-**`pnpm demo:full` - six scenes, about 6 minutes** (`DEMO_MODE=full`). Listings expire 180 s after listing and resolve 330 s after (`DEMO_EXPIRES_IN` / `DEMO_RESOLVE_IN`); 330 is the smallest value the buyers accept with slack (`deliverTimeout 180 + qualityWindow 90 + MIN_OUTCOME_WINDOW 10`, plus ~50 s for the listing and purchase transactions to land).
-
-1. **Scout commits and bonds.** Five dossiers listed as salted hashes + provider-free labels (accelerator, GPU bucket, region, interconnect, price band, availability months), 2x price bonded; Brineholt Labs and Sounding Compute score the labels blind and buy with fresh one-time keys. **1b Sealed delivery**: the buyer decrypts locally and prints `commitment OK`.
-2. **Already on the price board.** Sounding Compute's grader finds the "on-demand H100 cut" fact on a synthetic price board dated before `listedAt`; files a bonded `AlreadyPublic` dispute with the key sealed to the judge. Ruling: buyer refunded + dispute bond + damages, 1.5x price burned, seller `refuted = 1`.
-3. **True but forbidden.** Brineholt Labs finds an API key and an NDA clause inside a real go-live dossier; `ForbiddenContent`; slashed. Being right does not save you: no credentials, no contract text.
-4. **Honest sale settles.** The quality window closes, `release` pays the seller 98% and burns 2%; the bond stays locked; Brineholt Labs later `attest`s that the block showed up on the board.
-5. **Ghost seller.** A bought `DemandSignal` listing is never delivered; after 180 s Sounding Compute takes a refund plus 10% of the bond; `ghosted = 1`.
-6. **On the hook until the outcome.** `resolveBy` passes, the seller withdraws the honest sale's bond and delists the unsold `ProviderReference` listing. Recap box: scene → outcome → tx count, every tx as an Arbiscan link, seller and buyer counters, balances before/after.
-
-**`pnpm sweep`** is the seller's housekeeping after either run: for every per-run scout identity it withdraws bonds that are unlocked (`Released` / `RuledSeller`, past `resolveBy`), delists listings that are still `Listed` and expired, returns leftover ETH above a gas reserve to the scout treasury, and prints what is still locked with its unlock time. Safe to run any time; prints "nothing to sweep" when there is nothing to do.
-
-## Deployed
-
-- Contract (Arbitrum Sepolia, verified): `0xb24cA3C97Cc483aF9c1bB24b9D89F2C7461312eb` - [sepolia.arbiscan.io/address/0xb24cA3C97Cc483aF9c1bB24b9D89F2C7461312eb](https://sepolia.arbiscan.io/address/0xb24cA3C97Cc483aF9c1bB24b9D89F2C7461312eb)
-- Dashboard: [web-five-gules-93.vercel.app](https://web-five-gules-93.vercel.app/)
-- Demo video: `<FILL: video URL>`
-- Arbiter: model `claude-opus-5`, rubric hash = keccak256 of [`contracts/rubric.md`](contracts/rubric.md); demo windows 90 s / 180 s / 600 s (production: 48 h / 24 h / 7 d).
-
-Note: Ethereum Sepolia has a published end-of-life of 2026-09-30; Arbitrum Sepolia faucets and explorer links may degrade shortly after submission.
+This was my first project that actually touches a chain. I picked Arbitrum because I'd read the whitepaper and wanted to see the rollup from the inside, and I learn best by building. Getting testnet ETH took longer than deploying the contract, which is how I learned what token maxing really means.
 
 ## License
 
