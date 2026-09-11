@@ -5,7 +5,6 @@ A sealed on-chain market where AI labs and GPU brokers buy pre-public facts abou
 - Contract: [`0xb24cA3C97Cc483aF9c1bB24b9D89F2C7461312eb`](https://sepolia.arbiscan.io/address/0xb24cA3C97Cc483aF9c1bB24b9D89F2C7461312eb) (Arbitrum Sepolia, verified)
 - Dashboard: https://web-five-gules-93.vercel.app/
 - Demo video: https://www.loom.com/share/780a6c3d48604bef905955d08229b7e7
-- All providers and companies in the demo are synthetic. No GPU-hours are traded, only facts about them.
 
 ## Stack
 
