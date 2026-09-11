@@ -1,6 +1,6 @@
 # Undercloud
 
-A sealed on-chain market where AI labs and GPU brokers buy pre-public facts about compute capacity (a block coming off contract, a price cut, a site going live) that they cannot see before paying.
+A sealed on-chain market where AI labs and GPU brokers buy pre-public facts about compute capacity.
 
 - Contract: [`0xb24cA3C97Cc483aF9c1bB24b9D89F2C7461312eb`](https://sepolia.arbiscan.io/address/0xb24cA3C97Cc483aF9c1bB24b9D89F2C7461312eb) (Arbitrum Sepolia, verified)
 - Dashboard: https://web-five-gules-93.vercel.app/
