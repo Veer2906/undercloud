@@ -1,0 +1,19 @@
+{
+  "name": "undercloud",
+  "private": true,
+  "scripts": {
+    "keygen": "pnpm --filter agents keygen",
+    "balance": "pnpm --filter agents balance",
+    "bridge": "bash scripts/bridge.sh",
+    "fund": "pnpm --filter agents fund",
+    "test:contracts": "cd contracts && forge test -vvv",
+    "deploy:contract": "bash scripts/deploy.sh",
+    "verify:contract": "bash scripts/verify.sh",
+    "sync": "pnpm --filter agents sync",
+    "demo": "pnpm --filter agents demo",
+    "demo:full": "pnpm --filter agents demo:full",
+    "sweep": "pnpm --filter agents sweep",
+    "web": "pnpm --dir web dev",
+    "web:build": "pnpm --dir web build"
+  }
+}

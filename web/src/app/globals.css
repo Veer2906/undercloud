@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* Undercloud is a single committed dark theme: a dashboard judges watch, not a marketing site.
+   Raw values live on :root; the @theme block maps them to Tailwind utilities (bg-paper, text-ink, …). */
+:root {
+  --paper: #0b0d10;
+  --paper-2: #10141a;
+  --card: #13181f;
+  --card-2: #182028;
+  --line: #222b35;
+  --line-2: #2f3a47;
+  --ink: #e8ebef;
+  --ink-2: #aab3bf;
+  --ink-3: #6f7a89;
+  --amber: #f2b64a;
+  --amber-ink: #1a1200;
+  --green: #5bd48f;
+  --red: #ff6f6f;
+  --blue: #79adff;
+  --violet: #b699ff;
+  --cyan: #62d4e0;
+  --orange: #ffa25b;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-amber: var(--amber);
+  --color-amber-ink: var(--amber-ink);
+  --color-green: var(--green);
+  --color-red: var(--red);
+  --color-blue: var(--blue);
+  --color-violet: var(--violet);
+  --color-cyan: var(--cyan);
+  --color-orange: var(--orange);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-serif: var(--font-instrument-serif), "Iowan Old Style", Georgia, serif;
+}
+
+html {
+  color-scheme: dark;
+  background: var(--paper);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1, "cv11" 1;
+}
+
+/* Hairline rules and small caps labels give the page its editorial rhythm. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.hairline {
+  border-color: var(--line);
+}
+
+a.hex {
+  font-family: var(--font-mono);
+  color: var(--blue);
+  text-decoration: none;
+  border-bottom: 1px dotted color-mix(in oklab, var(--blue) 45%, transparent);
+}
+a.hex:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+table.market th {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Thin, quiet scrollbars for the feed and the wide table. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+.live-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}

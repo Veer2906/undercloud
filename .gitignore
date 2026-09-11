@@ -1,0 +1,21 @@
+node_modules
+.env
+.env.*
+!.env.example
+!.env.local.example
+out/
+cache/
+broadcast/**/dry-run/
+.next/
+.vercel
+*.log
+.DS_Store
+contracts/broadcast/local-*
+*.tsbuildinfo
+.claude/
+.env.example
+
+# Finder duplicates ("name 2") must never be committed
+.env *
+* 2
+* 2.yaml

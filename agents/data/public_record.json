@@ -1,0 +1,5 @@
+[
+  { "provider": "Kittiwake Cloud", "category": "PriceMove", "accelerator": "H100", "region": "EU-West", "claimType": "on-demand-cut", "fact": "Kittiwake Cloud cuts H100 SXM on-demand to $1.89/GPU-hr in its Dublin region", "publishedAt": "2026-08-28", "source": "synthetic://priceboard/eu-west/h100-on-demand/2026-08-28" },
+  { "provider": "Skerry Compute", "category": "NewSupply", "accelerator": "H100", "region": "EU-North", "claimType": "power-energized", "fact": "Skerry Compute brings 40 MW Tromsø campus phase 1 online", "publishedAt": "2026-04-10", "source": "synthetic://press/nordic-dc-wire/2026-04-10/40mw-phase1" },
+  { "provider": "Marlstone DC", "category": "Financing", "region": "US-East", "fact": "Marlstone DC closes $400M construction facility for its Atlanta campus", "publishedAt": "2026-06-02", "source": "synthetic://press/dc-finance-daily/2026-06-02/atl-construction-facility" }
+]

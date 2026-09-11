@@ -1,0 +1,2 @@
+# rubric.md is hashed byte-for-byte into the contract (rubricHash); LF endings keep the hash stable on every OS.
+*.md text eol=lf
